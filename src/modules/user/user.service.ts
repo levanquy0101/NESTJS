@@ -16,6 +16,10 @@ export class UserService {
   }
 
   async findAll(): Promise<User[]> {
-    return this.userModel.find().exec();  // Lấy tất cả người dùng từ MongoDB
+    return this.userModel.find().populate('role').exec(); // Sử dụng populate
+  }
+  
+  async findById(id: string): Promise<User> {
+    return this.userModel.findById(id).populate('role').exec(); // Sử dụng populate
   }
 }
