@@ -1,34 +1,54 @@
 // src/modules/user/user.controller.ts
-import { Controller, Get, Post, Body, UseGuards, Request, Put, UseInterceptors, UploadedFile, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Put, UseInterceptors, UploadedFiles, Res } from '@nestjs/common';
 import { UserService } from './user.service';
-import { User } from '../../entities/user.entity';  // Import User entity
+import { User } from '../../entities/user.entity';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { CloudinaryService } from 'src/common/cloudinary/cloudinary.service';
+import { Response } from 'express';
 
 @Controller('api/users')
 export class UserController {
   constructor(
     private readonly userService: UserService,
-    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   @Post()
   create(@Body() user: User): Promise<User> {
-    return this.userService.create(user);  // Tạo người dùng và lưu vào MongoDB
+    return this.userService.create(user);
   }
 
   @Get()
   @UseGuards(JwtAuthGuard)
   findAll(): Promise<User[]> {
-    return this.userService.findAll();  // Lấy tất cả người dùng từ MongoDB
+    return this.userService.findAll();
   }
 
-  // Route này yêu cầu người dùng phải đăng nhập (có JWT hợp lệ)
   @Get('me')
-  @UseGuards(JwtAuthGuard)  // Áp dụng bảo vệ cho route này
+  @UseGuards(JwtAuthGuard)
   getProfile(@Request() req) {
-    return req.user;  // Trả về thông tin người dùng từ request (đã được lưu ở validate trong JwtStrategy)
+    return req.user;
+  }
+
+  @Get('avatar/:id')
+  async getAvatar(@Request() req, @Res() res: Response) {
+    const user = await this.userService.findById(req.params.id);
+    if (user && user.avatar) {
+      res.setHeader('Content-Type', user.avatarMimeType);
+      res.send(user.avatar);
+    } else {
+      res.status(404).send('Avatar not found');
+    }
+  }
+
+  @Get('background/:id')
+  async getBackground(@Request() req, @Res() res: Response) {
+    const user = await this.userService.findById(req.params.id);
+    if (user && user.background) {
+      res.setHeader('Content-Type', user.backgroundMimeType);
+      res.send(user.background);
+    } else {
+      res.status(404).send('Background not found');
+    }
   }
 
   @Put('me')
@@ -44,16 +64,16 @@ export class UserController {
     @Body() user: User, 
     @UploadedFiles() files: { avatar?: Express.Multer.File[], background?: Express.Multer.File[] }
   ): Promise<User> {
-    const userId = req.user._id;
+    const userId = req.user.id;
   
     if (files.avatar?.length > 0) {
-      const uploadResult = await this.cloudinaryService.uploadImage(files.avatar[0]);
-      user.avatar = uploadResult.secure_url;
+      user.avatar = files.avatar[0].buffer;
+      user.avatarMimeType = files.avatar[0].mimetype;
     }
   
     if (files.background?.length > 0) {
-      const uploadResult = await this.cloudinaryService.uploadImage(files.background[0]);
-      user.background = uploadResult.secure_url;
+      user.background = files.background[0].buffer;
+      user.backgroundMimeType = files.background[0].mimetype;
     }
   
     return this.userService.update(userId, user);

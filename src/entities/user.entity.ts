@@ -35,11 +35,17 @@ export class User {
   @JoinColumn({ name: 'role_id' })
   role: Role;
 
-  @Column({ length: 512, nullable: true })
-  background: string;
+  @Column({ type: 'bytea', nullable: true })
+  avatar: Buffer;
 
-  @Column({ length: 512, nullable: true })
-  avatar: string;
+  @Column({ type: 'bytea', nullable: true })
+  background: Buffer;
+
+  @Column({ length: 50, nullable: true })
+  avatarMimeType: string;
+
+  @Column({ length: 50, nullable: true })
+  backgroundMimeType: string;
 
   @CreateDateColumn()
   createdAt: Date;

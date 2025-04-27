@@ -11,6 +11,6 @@ export const databaseConfig = (configService: ConfigService): TypeOrmModuleOptio
     database: configService.get('DB_DATABASE', 'my_project'),
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
     synchronize: true,
-    logging: true
+    logging: false
   };
 };
