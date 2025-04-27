@@ -1,7 +1,7 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfig } from './config/database.config';
 import { UserModule } from './modules/user/user.module';
 import { RoleModule } from './modules/role/role.module';
@@ -20,7 +20,7 @@ import { NotificationModule } from './modules/notification/notification.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
-    MongooseModule.forRootAsync({
+    TypeOrmModule.forRootAsync({
       useFactory: (configService: ConfigService) => databaseConfig(configService),
       inject: [ConfigService],
     }),

@@ -1,21 +1,28 @@
 // src/entities/notification.entity.ts
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 
-@Schema({ timestamps: true })
-export class Notification extends Document {
-  @Prop({ required: true })
-  title: string; // Tiêu đề thông báo
+@Entity('notifications')
+export class Notification {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Prop({ required: true })
-  content: string; // Nội dung thông báo
+  @Column()
+  title: string;
 
-  @Prop({ type: Boolean, default: false })
-  isRead: boolean; // Trạng thái của thông báo (false: chưa đọc, true: đã đọc)
+  @Column()
+  content: string;
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
-  user: User; // Người nhận thông báo
+  @Column({ default: false })
+  isRead: boolean;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
-
-export const NotificationSchema = SchemaFactory.createForClass(Notification);

@@ -1,43 +1,49 @@
 // src/entities/user.entity.ts
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Role } from './role.entity';
 
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-@Schema({ timestamps: true })
-export class User extends Document {
-  @Prop({ unique: true, required: [true, 'Username không được để trống!'], maxlength: [45, 'Username không được quá 45 ký tự!'] })
+  @Column({ unique: true, length: 45 })
   username: string;
-  
-  @Prop({ required: [true, 'Tên không được để trống!'], maxlength: [45, 'Tên không được quá 45 ký tự!'] })
-  name: string;  
 
-  @Prop({ unique: true, required: [true, 'Email là bắt buộc!'], match: [/\S+@\S+\.\S+/, 'Email không hợp lệ!'] })
+  @Column({ length: 45 })
+  name: string;
+
+  @Column({ unique: true })
   email: string;
 
-  @Prop({ maxlength: [45, 'Trường không được vượt quá 45 ký tự!'] })
+  @Column({ length: 45, nullable: true })
   dob: string;
 
-  @Prop({ match: [/^[0-9]{10,11}$/, 'Số điện thoại phải có 10-11 chữ số!'] })
+  @Column({ nullable: true })
   phone: string;
 
-  @Prop({ maxlength: [255, 'Trường không được vượt quá 255 ký tự!'] })
+  @Column({ length: 255, nullable: true })
   address: string;
 
-  @Prop({ maxlength: [512, 'Trường không được vượt quá 512 ký tự!'] })
+  @Column({ length: 512, nullable: true })
   about: string;
 
-  @Prop({ required: true })
+  @Column()
   password: string;
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Role', required: true })
+  @ManyToOne(() => Role)
+  @JoinColumn({ name: 'role_id' })
   role: Role;
 
-  @Prop({ maxlength: [512, 'Trường không được vượt quá 512 ký tự!'] })
+  @Column({ length: 512, nullable: true })
   background: string;
 
-  @Prop({ maxlength: [512, 'Trường không được vượt quá 512 ký tự!'] })
+  @Column({ length: 512, nullable: true })
   avatar: string;
-}
 
-export const UserSchema = SchemaFactory.createForClass(User);
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+}

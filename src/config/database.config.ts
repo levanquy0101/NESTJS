@@ -1,10 +1,16 @@
 import { ConfigService } from '@nestjs/config';
+import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
-export const databaseConfig = (configService: ConfigService) => {
-  const uri = configService.get<string>('DATABASE_URI');
-
-  // Trả về cấu hình MongoDB
+export const databaseConfig = (configService: ConfigService): TypeOrmModuleOptions => {
   return {
-    uri,
+    type: 'postgres',
+    host: configService.get('DB_HOST', 'localhost'),
+    port: configService.get('DB_PORT', 5432),
+    username: configService.get('DB_USERNAME', 'postgres'),
+    password: configService.get('DB_PASSWORD', 'postgres'),
+    database: configService.get('DB_DATABASE', 'my_project'),
+    entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+    synchronize: configService.get('DB_SYNC', false),
+    logging: configService.get('DB_LOGGING', false),
   };
 };

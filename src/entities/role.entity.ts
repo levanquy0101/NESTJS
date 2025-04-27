@@ -1,17 +1,21 @@
 // src/entities/role.entity.ts
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { User } from './user.entity';
 
-@Schema()
-export class Role extends Document {
-  @Prop({ required: true, unique: true })
+@Entity('roles')
+export class Role {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ unique: true })
   name: string;
 
-  @Prop({ required: true })
+  @Column()
   label: string;
 
-  @Prop({ required: true })
+  @Column()
   level: number;
-}
 
-export const RoleSchema = SchemaFactory.createForClass(Role);
+  @OneToMany(() => User, user => user.role)
+  users: User[];
+}

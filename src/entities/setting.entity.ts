@@ -1,21 +1,23 @@
 // src/entities/setting.entity.ts
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-@Schema({ collection: 'setting', timestamps: true }) 
-export class Setting extends Document {
-  
-  @Prop({ required: true, unique: true })  // Đảm bảo appName là duy nhất
+@Entity('settings')
+export class Setting {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ unique: true })
   appName: string;
-  
-  @Prop({ required: true })
+
+  @Column()
   logo: string;
-  
-  @Prop({ required: true })
+
+  @Column()
   emailNotification: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
-
-export const SettingSchema = SchemaFactory.createForClass(Setting);
-
-// Tạo index duy nhất cho appName
-SettingSchema.index({ appName: 1 }, { unique: true });
