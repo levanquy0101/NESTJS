@@ -3,7 +3,12 @@ import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcryptjs';
 import { Response } from 'express'; // Thêm Response từ express để thao tác với cookie
-import { EmailService } from '../../common/services/email.service';;
+import { EmailService } from '../../common/services/email.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { RefreshToken } from './refresh-token.entity';
+import { ConfigService } from '@nestjs/config';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
@@ -11,6 +16,9 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
   ) { }
 
   // Đăng nhập và tạo JWT token
@@ -27,20 +35,68 @@ export class AuthService {
       throw new BadRequestException('Invalid password');
     }
 
+    // Tạo access token
+    const accessToken = this.jwtService.sign({ 
+      username: user.username, 
+      sub: user.id 
+    });
 
-    // Tạo JWT token
-    const payload = { username: user.username, sub: user.id };
-    const accessToken = this.jwtService.sign(payload);
+    // Tạo refresh token
+    const refreshToken = await this.createRefreshToken(user);
 
-    // Gửi token vào cookie HTTP-only
+    // Gửi tokens vào cookie
     res.cookie('access_token', accessToken, {
       httpOnly: true,    // Cookie sẽ không thể truy cập từ JavaScript
       secure: process.env.NODE_ENV === 'production', // Chỉ dùng https khi ở môi trường production
-      maxAge: 3600000 * 24,   // Thời gian sống của cookie (24 giờ)
-      // sameSite: 'none', // Cấu hình bảo mật cho cookie (không chia sẻ giữa các miền khác)
+      maxAge: 3600000, // 1 giờ
+    });
+
+    res.cookie('refresh_token', refreshToken.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 3600000, // 7 ngày
     });
 
     res.status(200).send({ message: 'Login successful' });
+  }
+
+  async refreshAccessToken(refreshToken: string): Promise<string> {
+    // Tìm refresh token trong database
+    const token = await this.refreshTokenRepository.findOne({
+      where: { token: refreshToken },
+      relations: ['user'],
+    });
+
+    if (!token || token.expiresAt < new Date()) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Tạo access token mới
+    const accessToken = this.jwtService.sign({
+      username: token.user.username,
+      sub: token.user.id,
+    });
+
+    return accessToken;
+  }
+
+  async logout(userId: string): Promise<void> {
+    // Xóa tất cả refresh token của user
+    await this.refreshTokenRepository.delete({ user: { id: userId } });
+  }
+
+  private async createRefreshToken(user: any): Promise<RefreshToken> {
+    const expiresIn = 7 * 24 * 60 * 60; // 7 ngày
+    const expiresAt = new Date();
+    expiresAt.setSeconds(expiresAt.getSeconds() + expiresIn);
+
+    const refreshToken = this.refreshTokenRepository.create({
+      token: uuidv4(),
+      user,
+      expiresAt,
+    });
+
+    return this.refreshTokenRepository.save(refreshToken);
   }
 
   // Yêu cầu quên mật khẩu

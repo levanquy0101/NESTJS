@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, UseGuards, Request, Put, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, Res, UseGuards, Request, Put, UnauthorizedException, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -16,9 +16,32 @@ export class AuthController {
   }
 
   @Post('logout')
-  async logout(@Res() res: Response) {
+  @UseGuards(JwtAuthGuard)
+  async logout(@Request() req, @Res() res: Response) {
+    await this.authService.logout(req.user.id);
     res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
     return res.status(200).json({ message: 'Đã đăng xuất thành công' });
+  }
+
+  @Post('refresh')
+  async refresh(@Request() req, @Res() res: Response) {
+    const refreshToken = req.cookies['refresh_token'];
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token not found');
+    }
+
+    try {
+      const accessToken = await this.authService.refreshAccessToken(refreshToken);
+      res.cookie('access_token', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 3600000, // 1 giờ
+      });
+      return res.status(200).json({ message: 'Token refreshed successfully' });
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 
   // Yêu cầu quên mật khẩu
