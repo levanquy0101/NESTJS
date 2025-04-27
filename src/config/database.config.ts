@@ -10,7 +10,7 @@ export const databaseConfig = (configService: ConfigService): TypeOrmModuleOptio
     password: configService.get('DB_PASSWORD', 'levanquy'),
     database: configService.get('DB_DATABASE', 'my_project'),
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    synchronize: configService.get('DB_SYNC', false),
-    logging: configService.get('DB_LOGGING', false),
+    synchronize: true,
+    logging: true
   };
 };
