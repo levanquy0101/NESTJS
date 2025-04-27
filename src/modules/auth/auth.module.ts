@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from '../user/user.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -12,9 +13,15 @@ import { CommonModule } from '../../common/common.module';
     UserModule,
     PassportModule,
     CommonModule,
-    JwtModule.register({
-      secret: 'your-secret-key', // Key dùng để ký JWT, có thể thay đổi thành một giá trị bảo mật hơn
-      signOptions: { expiresIn: '24h' }, // JWT sẽ hết hạn sau 1 giờ
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { 
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '24h')
+        },
+      }),
+      inject: [ConfigService],
     }),
   ],
   providers: [AuthService, JwtStrategy],

@@ -4,17 +4,21 @@ import { ExtractJwt, Strategy } from 'passport-jwt';  // Thư viện passport-jw
 import { UserService } from '../user/user.service';  // Dịch vụ User
 import { User } from '../user/user.entity';
 import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly userService: UserService) {
+  constructor(
+    private readonly userService: UserService,
+    private readonly configService: ConfigService
+  ) {
     super({
       jwtFromRequest: (req: Request) => {
         const token = req.cookies['access_token']; // Lấy JWT từ cookie
         return token ? token : null;
       },
       ignoreExpiration: false,  // Không bỏ qua hạn sử dụng của token
-      secretOrKey: 'your-secret-key',  // Dùng khóa bí mật để xác thực token
+      secretOrKey: configService.get<string>('JWT_SECRET'),  // Dùng khóa bí mật để xác thực token
     });
   }
 
