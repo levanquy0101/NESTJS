@@ -1,7 +1,7 @@
 import { Controller, Get, Request, UseGuards } from '@nestjs/common';
 import { RoleService } from './role.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { Role } from '../../entities/role.entity';
+import { Role } from './role.entity';
 import { UserService } from '../user/user.service';
 
 @Controller('api/roles')

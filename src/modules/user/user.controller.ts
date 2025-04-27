@@ -1,7 +1,7 @@
 // src/modules/user/user.controller.ts
 import { Controller, Get, Post, Body, UseGuards, Request, Put, UseInterceptors, UploadedFiles, Res } from '@nestjs/common';
 import { UserService } from './user.service';
-import { User } from '../../entities/user.entity';
+import { User } from './user.entity';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';

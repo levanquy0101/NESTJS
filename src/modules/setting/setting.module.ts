@@ -1,7 +1,7 @@
 // src/modules/setting/setting.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Setting } from '../../entities/setting.entity';
+import { Setting } from './setting.entity';
 import { SettingController } from './setting.controller';
 import { SettingService } from './setting.service';
 

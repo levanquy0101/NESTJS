@@ -2,8 +2,8 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';  // Import bcryptjs
-import { User } from '../../entities/user.entity';
-import { Setting } from '../../entities/setting.entity';
+import { User } from '../../modules/user/user.entity';
+import { Setting } from '../../modules/setting/setting.entity';
 import { RoleService } from 'src/modules/role/role.service';
 import { DEFAULT_ADMIN_USER, DEFAULT_ROLES, DEFAULT_SETTING } from 'src/shared/constants';
 

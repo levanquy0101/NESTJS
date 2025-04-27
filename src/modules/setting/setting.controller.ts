@@ -1,7 +1,7 @@
 // src/modules/setting/setting.controller.ts
 import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
 import { SettingService } from './setting.service';
-import { Setting } from '../../entities/setting.entity';
+import { Setting } from './setting.entity';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('api/setting')
