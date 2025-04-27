@@ -54,7 +54,7 @@ export class AuthController {
     @Res() res: Response,
   ) {
     try {
-      await this.authService.changePassword(req.user._id, body.oldPassword, body.newPassword, body.confirmPassword);
+      await this.authService.changePassword(req.user.id, body.oldPassword, body.newPassword, body.confirmPassword);
       return res.status(200).json({ message: 'Password changed successfully' });
     } catch (error) {
       if (error instanceof UnauthorizedException) {

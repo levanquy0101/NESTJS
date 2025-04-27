@@ -29,7 +29,7 @@ export class AuthService {
 
 
     // Tạo JWT token
-    const payload = { username: user.username, sub: user._id };
+    const payload = { username: user.username, sub: user.id };
     const accessToken = this.jwtService.sign(payload);
 
     // Gửi token vào cookie HTTP-only
@@ -51,7 +51,7 @@ export class AuthService {
     }
 
     // Tạo một mã reset token (JWT)
-    const payload = { username: user.username, sub: user._id };
+    const payload = { username: user.username, sub: user.id };
     const resetToken = this.jwtService.sign(payload, {
       expiresIn: '10m', // Token sẽ hết hạn trong 10 phút
     });
@@ -68,7 +68,7 @@ export class AuthService {
       if (!user) {
         throw new BadRequestException('User not found');
       }
-      const userId = user._id.toString();
+      const userId = user.id;
       user.password = newPassword;
       await this.userService.update(userId, user);
     } catch (error) {

@@ -1,7 +1,7 @@
 // src/roles/roles.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { Role } from '../../entities/role.entity';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class RoleService {
   // src/entities/role.entity.ts
   async findAll(numberLevel: number): Promise<Role[]> {
     return this.roleRepository.find({
-      where: { level: { $gt: numberLevel } }
+      where: { level: MoreThan(numberLevel) }
     });
   }
 

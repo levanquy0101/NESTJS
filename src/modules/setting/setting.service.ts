@@ -13,7 +13,9 @@ export class SettingService {
 
   // Lấy cấu hình hiện tại (Chỉ có 1 cấu hình trong db)
   async findOne(): Promise<Setting> {
-    const setting = await this.settingRepository.findOne();
+    const setting = await this.settingRepository.findOne({
+      where: {}
+    });
     if (!setting) {
       throw new NotFoundException('Setting not found');
     }
@@ -27,7 +29,9 @@ export class SettingService {
       throw new BadRequestException('There should be only one setting in the database');
     }
 
-    const setting = await this.settingRepository.findOne();
+    const setting = await this.settingRepository.findOne({
+      where: {}
+    });
     if (!setting) {
       throw new NotFoundException('Setting not found');
     }
