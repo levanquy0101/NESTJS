@@ -1,7 +1,6 @@
 // app.config.ts
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { LoggerMiddleware } from '../middleware/logger.middleware';
-// import { AuthMiddleware } from '../middleware/auth.middleware';
 import { RateLimiterMiddleware } from '../middleware/rate-limiter.middleware';
 
 export const appConfig = (consumer: MiddlewareConsumer): void => {
