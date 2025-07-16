@@ -1,6 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import { MemoryCacheService } from './memory-cache.service';
 
 export interface CacheOptions {
   ttl?: number;
@@ -13,6 +14,8 @@ export class CacheService {
   private readonly defaultTTL: number;
   private readonly maxKeys: number;
 
+  private memoryCache: MemoryCacheService | null = null;
+
   constructor(
     @Inject('REDIS_CLIENT') private readonly redis: Redis | null,
     private readonly configService: ConfigService,
@@ -22,11 +25,21 @@ export class CacheService {
   }
 
   /**
+   * Initialize memory cache when needed
+   */
+  private async initMemoryCache(): Promise<MemoryCacheService> {
+    if (!this.memoryCache) {
+      console.log('🔄 Redis unavailable, using Memory Cache as fallback');
+      this.memoryCache = new MemoryCacheService();
+    }
+    return this.memoryCache;
+  }
+
+  /**
    * Lưu dữ liệu vào cache
    */
   async set(key: string, value: any, options?: CacheOptions): Promise<void> {
     if (!this.redis) {
-      this.logger.warn('Redis client not available, skipping cache set');
       return;
     }
 
@@ -40,10 +53,10 @@ export class CacheService {
       const serializedValue = JSON.stringify(value);
       await this.redis.setex(cacheKey, ttl, serializedValue);
       
-      this.logger.debug(`Cache set: ${cacheKey} (TTL: ${ttl}s)`);
+
     } catch (error) {
-      this.logger.error(`Error setting cache for key ${key}:`, error);
-      throw error;
+      const memoryCache = await this.initMemoryCache();
+      await memoryCache.set(key, value, options);
     }
   }
 
@@ -52,7 +65,6 @@ export class CacheService {
    */
   async get<T = any>(key: string, options?: CacheOptions): Promise<T | null> {
     if (!this.redis) {
-      this.logger.warn('Redis client not available, returning null');
       return null;
     }
 
@@ -61,15 +73,13 @@ export class CacheService {
       const value = await this.redis.get(cacheKey);
       
       if (value === null) {
-        this.logger.debug(`Cache miss: ${cacheKey}`);
         return null;
       }
       
-      this.logger.debug(`Cache hit: ${cacheKey}`);
       return JSON.parse(value);
     } catch (error) {
-      this.logger.error(`Error getting cache for key ${key}:`, error);
-      return null;
+      const memoryCache = await this.initMemoryCache();
+      return await memoryCache.get<T>(key, options);
     }
   }
 
@@ -78,7 +88,6 @@ export class CacheService {
    */
   async delete(key: string, options?: CacheOptions): Promise<boolean> {
     if (!this.redis) {
-      this.logger.warn('Redis client not available, skipping cache delete');
       return false;
     }
 
@@ -86,11 +95,10 @@ export class CacheService {
       const cacheKey = this.buildKey(key, options?.prefix);
       const result = await this.redis.del(cacheKey);
       
-      this.logger.debug(`Cache deleted: ${cacheKey}`);
       return result > 0;
     } catch (error) {
-      this.logger.error(`Error deleting cache for key ${key}:`, error);
-      return false;
+      const memoryCache = await this.initMemoryCache();
+      return await memoryCache.delete(key, options);
     }
   }
 
@@ -99,7 +107,6 @@ export class CacheService {
    */
   async deleteByPattern(pattern: string): Promise<number> {
     if (!this.redis) {
-      this.logger.warn('Redis client not available, skipping cache delete by pattern');
       return 0;
     }
 
@@ -108,10 +115,8 @@ export class CacheService {
       if (keys.length === 0) return 0;
       
       const result = await this.redis.del(...keys);
-      this.logger.debug(`Deleted ${result} keys with pattern: ${pattern}`);
       return result;
     } catch (error) {
-      this.logger.error(`Error deleting cache by pattern ${pattern}:`, error);
       return 0;
     }
   }
@@ -121,7 +126,6 @@ export class CacheService {
    */
   async exists(key: string, options?: CacheOptions): Promise<boolean> {
     if (!this.redis) {
-      this.logger.warn('Redis client not available, returning false');
       return false;
     }
 
@@ -130,8 +134,8 @@ export class CacheService {
       const result = await this.redis.exists(cacheKey);
       return result === 1;
     } catch (error) {
-      this.logger.error(`Error checking cache existence for key ${key}:`, error);
-      return false;
+      const memoryCache = await this.initMemoryCache();
+      return await memoryCache.exists(key, options);
     }
   }
 
@@ -140,7 +144,6 @@ export class CacheService {
    */
   async getTTL(key: string, options?: CacheOptions): Promise<number> {
     if (!this.redis) {
-      this.logger.warn('Redis client not available, returning -1');
       return -1;
     }
 
@@ -148,8 +151,8 @@ export class CacheService {
       const cacheKey = this.buildKey(key, options?.prefix);
       return await this.redis.ttl(cacheKey);
     } catch (error) {
-      this.logger.error(`Error getting TTL for key ${key}:`, error);
-      return -1;
+      const memoryCache = await this.initMemoryCache();
+      return await memoryCache.getTTL(key, options);
     }
   }
 
@@ -158,7 +161,6 @@ export class CacheService {
    */
   async extendTTL(key: string, ttl: number, options?: CacheOptions): Promise<boolean> {
     if (!this.redis) {
-      this.logger.warn('Redis client not available, returning false');
       return false;
     }
 
@@ -167,7 +169,6 @@ export class CacheService {
       const result = await this.redis.expire(cacheKey, ttl);
       return result === 1;
     } catch (error) {
-      this.logger.error(`Error extending TTL for key ${key}:`, error);
       return false;
     }
   }
@@ -177,14 +178,12 @@ export class CacheService {
    */
   async getKeys(pattern: string): Promise<string[]> {
     if (!this.redis) {
-      this.logger.warn('Redis client not available, returning empty array');
       return [];
     }
 
     try {
       return await this.redis.keys(pattern);
     } catch (error) {
-      this.logger.error(`Error getting keys with pattern ${pattern}:`, error);
       return [];
     }
   }
@@ -194,15 +193,12 @@ export class CacheService {
    */
   async flushAll(): Promise<void> {
     if (!this.redis) {
-      this.logger.warn('Redis client not available, skipping flush all');
       return;
     }
 
     try {
       await this.redis.flushall();
-      this.logger.debug('All cache flushed');
     } catch (error) {
-      this.logger.error('Error flushing all cache:', error);
       throw error;
     }
   }
@@ -216,7 +212,6 @@ export class CacheService {
     connectedClients: number;
   }> {
     if (!this.redis) {
-      this.logger.warn('Redis client not available, returning default stats');
       return {
         totalKeys: 0,
         memoryUsage: 'N/A',
@@ -242,7 +237,6 @@ export class CacheService {
         connectedClients,
       };
     } catch (error) {
-      this.logger.error('Error getting cache stats:', error);
       return {
         totalKeys: 0,
         memoryUsage: 'Unknown',
@@ -287,11 +281,10 @@ export class CacheService {
         
         if (keysToRemove.length > 0) {
           await this.redis.del(...keysToRemove);
-          this.logger.debug(`Cleaned up ${keysToRemove.length} old cache keys`);
         }
       }
     } catch (error) {
-      this.logger.error('Error checking max keys:', error);
+      // Silently ignore Redis connection errors in checkMaxKeys
     }
   }
 }

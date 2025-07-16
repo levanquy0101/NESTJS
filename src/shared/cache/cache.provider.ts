@@ -1,24 +1,16 @@
-import { Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 export const REDIS_CLIENT = 'REDIS_CLIENT';
 
-export const redisProvider: Provider = {
+export const RedisProvider = {
   provide: REDIS_CLIENT,
-  useFactory: (configService: ConfigService) => {    
-    const redisPassword = configService.get<string>('REDIS_PASSWORD');
-    
-    // Check if password is not configured or empty
-    if (!redisPassword || redisPassword.trim() === '') {
-      console.log('⚠️ REDIS_PASSWORD is not configured or empty, skipping Redis connection');
-      return null;
-    }
-
+  useFactory: (configService: ConfigService) => {
+    // If password exists, create Redis client
     const redisConfig = {
       host: configService.get<string>('REDIS_HOST', 'localhost'),
       port: configService.get<number>('REDIS_PORT', 6379),
-      password: redisPassword,
+      password: configService.get<string>('REDIS_PASSWORD'),
       lazyConnect: false,
       keepAlive: 30000,
       connectTimeout: 10000,
@@ -57,4 +49,4 @@ export const redisProvider: Provider = {
     return redis;
   },
   inject: [ConfigService],
-};
+}; 
