@@ -13,7 +13,7 @@ export const MailProvider = {
       throw new Error('SMTP_USER and SMTP_PASS are required');
     }
 
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host,
       port,
       secure: false,
@@ -21,7 +21,7 @@ export const MailProvider = {
     });
 
     await transporter.verify();
-    console.log('✅ Mail server connected');
+    console.log('📧 Mail server connected successfully');
     return transporter;
   },
   inject: [ConfigService],

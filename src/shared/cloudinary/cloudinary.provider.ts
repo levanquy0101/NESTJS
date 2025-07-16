@@ -22,9 +22,10 @@ export const CloudinaryProvider = {
         api_secret: apiSecret,
       });
 
+      console.log('☁️ Cloudinary connected successfully');
       return cloudinary;
     } catch (error) {
-      console.error('Cloudinary configuration error:', error);
+      console.error('❌ Cloudinary configuration error:', error);
       throw error; // Ném lỗi nếu cấu hình không thành công
     }
   },

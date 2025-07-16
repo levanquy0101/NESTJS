@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.1.4",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.4",
@@ -36,6 +37,7 @@
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.0",
+    "ioredis": "^5.6.1",
     "mongoose": "^8.16.3",
     "multer": "^2.0.1",
     "multer-storage-cloudinary": "^4.0.0",
