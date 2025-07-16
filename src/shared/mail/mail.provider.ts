@@ -9,20 +9,27 @@ export const MailProvider = {
     const user = configService.get<string>('SMTP_USER');
     const pass = configService.get<string>('SMTP_PASS');
 
+    // Nếu không có user hoặc pass, trả về null thay vì ném lỗi
     if (!user || !pass) {
-      throw new Error('SMTP_USER and SMTP_PASS are required');
+      console.log('⚠️  SMTP_USER and SMTP_PASS not configured. Mail service will be disabled.');
+      return null;
     }
 
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: false,
-      auth: { user, pass },
-    });
+    try {
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: false,
+        auth: { user, pass },
+      });
 
-    await transporter.verify();
-    console.log('📧 Mail server connected successfully');
-    return transporter;
+      await transporter.verify();
+      console.log('📧 Mail server connected successfully');
+      return transporter;
+    } catch (error) {
+      console.error('❌ Failed to connect to mail server:', error.message);
+      return null;
+    }
   },
   inject: [ConfigService],
 }; 
