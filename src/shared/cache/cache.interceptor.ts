@@ -1,103 +1,131 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler} from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Inject,
+} from '@nestjs/common';
 import { Observable, of } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { tap, catchError } from 'rxjs/operators';
 import { CacheService } from './cache.service';
 
-export interface CacheOptions {
+export interface CacheInterceptorOptions {
   ttl?: number;
-  key?: string;
   prefix?: string;
+  key?: string | ((request: any) => string);
 }
 
 @Injectable()
 export class CacheInterceptor implements NestInterceptor {
-  constructor(private cacheService: CacheService) {}
+  constructor(
+    @Inject(CacheService) private readonly cacheService: CacheService,
+  ) {}
 
   async intercept(
     context: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<any>> {
     const request = context.switchToHttp().getRequest();
-    const { method, url } = request;
-
+    const response = context.switchToHttp().getResponse();
+    
     // Chỉ cache GET requests
-    if (method !== 'GET') {
+    if (request.method !== 'GET') {
       return next.handle();
     }
 
-    // Tạo cache key
-    const cacheKey = this.generateCacheKey(request);
+    // Lấy cache options từ metadata hoặc decorator
+    const cacheOptions = this.getCacheOptions(context);
+    if (!cacheOptions) {
+      return next.handle();
+    }
+
+    const cacheKey = this.buildCacheKey(request, cacheOptions);
     
     // Thử lấy từ cache trước
-    const cachedResponse = await this.cacheService.get(cacheKey);
-    if (cachedResponse) {
-      console.log(`📦 Cache hit: ${cacheKey}`);
-      return of(cachedResponse);
+    const cachedData = await this.cacheService.get(cacheKey, {
+      ttl: cacheOptions.ttl,
+      prefix: cacheOptions.prefix,
+    });
+
+    if (cachedData !== null) {
+      // Trả về dữ liệu từ cache
+      return of(cachedData);
     }
 
     // Nếu không có trong cache, thực hiện request và cache kết quả
     return next.handle().pipe(
-      tap(async (response) => {
-        if (response) {
-          await this.cacheService.set(cacheKey, response, 3600); // 1 hour default
-          console.log(`💾 Cache stored: ${cacheKey}`);
+      tap(async (data) => {
+        try {
+          await this.cacheService.set(cacheKey, data, {
+            ttl: cacheOptions.ttl,
+            prefix: cacheOptions.prefix,
+          });
+        } catch (error) {
+          // Log error nhưng không throw để không ảnh hưởng response
+          console.error('Cache set error:', error);
         }
+      }),
+      catchError((error) => {
+        // Nếu có lỗi, không cache
+        return of(error);
       }),
     );
   }
 
-  private generateCacheKey(request: any): string {
-    const { method, url, query, params, body } = request;
-    
-    // Tạo key từ method, url và query params
-    let key = `${method}:${url}`;
-    
-    // Thêm query params nếu có
-    if (Object.keys(query).length > 0) {
-      key += `:${JSON.stringify(query)}`;
+  private getCacheOptions(context: ExecutionContext): CacheInterceptorOptions | null {
+    // Có thể mở rộng để lấy từ metadata, decorator, hoặc config
+    // Hiện tại trả về default options
+    return {
+      ttl: 3600, // 1 hour default
+      prefix: 'api',
+    };
+  }
+
+  private buildCacheKey(request: any, options: CacheInterceptorOptions): string {
+    if (typeof options.key === 'function') {
+      return options.key(request);
     }
-    
-    // Thêm params nếu có
-    if (Object.keys(params).length > 0) {
-      key += `:${JSON.stringify(params)}`;
+
+    if (typeof options.key === 'string') {
+      return options.key;
     }
+
+    // Tạo key từ URL và query params
+    const url = request.url;
+    const queryString = JSON.stringify(request.query);
+    const paramsString = JSON.stringify(request.params);
     
-    // Thêm body nếu có (cho POST/PUT requests)
-    if (body && Object.keys(body).length > 0) {
-      key += `:${JSON.stringify(body)}`;
-    }
-    
-    return key;
+    return `${url}:${queryString}:${paramsString}`;
   }
 }
 
-// Decorator để áp dụng cache cho specific routes
-export const CacheResponse = (options: CacheOptions = {}) => {
+// Decorator để đánh dấu endpoint cần cache
+export const Cacheable = (options?: CacheInterceptorOptions) => {
+  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+    // Có thể mở rộng để lưu metadata
+    return descriptor;
+  };
+};
+
+// Decorator để xóa cache
+export const CacheEvict = (pattern?: string) => {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
     
     descriptor.value = async function (...args: any[]) {
-      const cacheService = this.cacheService;
-      if (!cacheService) {
-        return originalMethod.apply(this, args);
-      }
-      
-      const cacheKey = options.key || `${target.constructor.name}:${propertyKey}:${JSON.stringify(args)}`;
-      const ttl = options.ttl || 3600;
-      
-      // Thử lấy từ cache
-      const cached = await cacheService.get(cacheKey);
-      if (cached) {
-        return cached;
-      }
-      
-      // Thực hiện method và cache kết quả
       const result = await originalMethod.apply(this, args);
-      await cacheService.set(cacheKey, result, ttl);
+      
+      // Xóa cache sau khi thực hiện method
+      if (pattern) {
+        const cacheService = this.cacheService;
+        if (cacheService) {
+          await cacheService.deleteByPattern(pattern);
+        }
+      }
       
       return result;
     };
     
     return descriptor;
   };
-}; 
+};
