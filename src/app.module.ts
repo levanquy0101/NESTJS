@@ -6,6 +6,7 @@ import { databaseConfig } from './config/database.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
@@ -15,12 +16,13 @@ import { appConfig } from './config/app.config';
       useFactory: (configService: ConfigService) => databaseConfig(configService),
       inject: [ConfigService],
     }),
+    SharedModule,
   ],
-  controllers: [AppController], // Các controller của ứng dụng
+  controllers: [AppController],
   providers: [AppService]
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    appConfig(consumer);  // Sử dụng cấu hình từ app.config.ts
+    appConfig(consumer);
   }
 }
