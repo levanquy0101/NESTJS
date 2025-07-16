@@ -10,19 +10,19 @@ export const CloudinaryProvider = {
       const apiKey = configService.get<string>('CLOUDINARY_API_KEY');
       const apiSecret = configService.get<string>('CLOUDINARY_API_SECRET');
 
-      // Kiểm tra các giá trị trước khi cấu hình
-      if (!cloudName || !apiKey || !apiSecret) {
-        throw new Error('Cloudinary configuration is missing one or more environment variables.');
+      // Cấu hình Cloudinary nếu có đủ thông tin
+      if (cloudName && apiKey && apiSecret) {
+        cloudinary.config({
+          cloud_name: cloudName,
+          api_key: apiKey,
+          api_secret: apiSecret,
+        });
+
+        console.log('☁️ Cloudinary connected successfully');
+      } else {
+        console.log('⚠️ Cloudinary configuration is missing, skipping initialization');
       }
 
-      // Cấu hình Cloudinary
-      cloudinary.config({
-        cloud_name: cloudName,
-        api_key: apiKey,
-        api_secret: apiSecret,
-      });
-
-      console.log('☁️ Cloudinary connected successfully');
       return cloudinary;
     } catch (error) {
       console.error('❌ Cloudinary configuration error:', error);
