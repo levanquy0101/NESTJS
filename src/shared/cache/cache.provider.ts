@@ -25,15 +25,15 @@ export const RedisProvider = {
     const redis = new Redis(redisConfig);
 
     redis.on('connect', () => {
-      console.log('✅ Redis connected successfully');
+      console.log('🌟 Redis connected successfully');
     });
 
     redis.on('ready', () => {
-      console.log('🚀 Redis is ready to accept commands');
+      // console.log('✨ Redis is ready to accept commands');
     });
 
     redis.on('error', (error) => {
-      console.error('❌ Redis connection error');
+      console.error('💀 Redis connection error');
       // Close connection on error to prevent reconnection attempts
       redis.disconnect();
     });
