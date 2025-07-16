@@ -14,7 +14,7 @@ export class CacheService {
   private readonly maxKeys: number;
 
   constructor(
-    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis | null,
     private readonly configService: ConfigService,
   ) {
     this.defaultTTL = this.configService.get<number>('REDIS_TTL', 3600);
@@ -25,6 +25,11 @@ export class CacheService {
    * Lưu dữ liệu vào cache
    */
   async set(key: string, value: any, options?: CacheOptions): Promise<void> {
+    if (!this.redis) {
+      this.logger.warn('Redis client not available, skipping cache set');
+      return;
+    }
+
     try {
       const ttl = options?.ttl || this.defaultTTL;
       const cacheKey = this.buildKey(key, options?.prefix);
@@ -46,6 +51,11 @@ export class CacheService {
    * Lấy dữ liệu từ cache
    */
   async get<T = any>(key: string, options?: CacheOptions): Promise<T | null> {
+    if (!this.redis) {
+      this.logger.warn('Redis client not available, returning null');
+      return null;
+    }
+
     try {
       const cacheKey = this.buildKey(key, options?.prefix);
       const value = await this.redis.get(cacheKey);
@@ -67,6 +77,11 @@ export class CacheService {
    * Xóa dữ liệu khỏi cache
    */
   async delete(key: string, options?: CacheOptions): Promise<boolean> {
+    if (!this.redis) {
+      this.logger.warn('Redis client not available, skipping cache delete');
+      return false;
+    }
+
     try {
       const cacheKey = this.buildKey(key, options?.prefix);
       const result = await this.redis.del(cacheKey);
@@ -83,6 +98,11 @@ export class CacheService {
    * Xóa tất cả cache với prefix
    */
   async deleteByPattern(pattern: string): Promise<number> {
+    if (!this.redis) {
+      this.logger.warn('Redis client not available, skipping cache delete by pattern');
+      return 0;
+    }
+
     try {
       const keys = await this.redis.keys(pattern);
       if (keys.length === 0) return 0;
@@ -100,6 +120,11 @@ export class CacheService {
    * Kiểm tra key có tồn tại trong cache không
    */
   async exists(key: string, options?: CacheOptions): Promise<boolean> {
+    if (!this.redis) {
+      this.logger.warn('Redis client not available, returning false');
+      return false;
+    }
+
     try {
       const cacheKey = this.buildKey(key, options?.prefix);
       const result = await this.redis.exists(cacheKey);
@@ -114,6 +139,11 @@ export class CacheService {
    * Lấy TTL của key
    */
   async getTTL(key: string, options?: CacheOptions): Promise<number> {
+    if (!this.redis) {
+      this.logger.warn('Redis client not available, returning -1');
+      return -1;
+    }
+
     try {
       const cacheKey = this.buildKey(key, options?.prefix);
       return await this.redis.ttl(cacheKey);
@@ -127,6 +157,11 @@ export class CacheService {
    * Gia hạn TTL cho key
    */
   async extendTTL(key: string, ttl: number, options?: CacheOptions): Promise<boolean> {
+    if (!this.redis) {
+      this.logger.warn('Redis client not available, returning false');
+      return false;
+    }
+
     try {
       const cacheKey = this.buildKey(key, options?.prefix);
       const result = await this.redis.expire(cacheKey, ttl);
@@ -141,6 +176,11 @@ export class CacheService {
    * Lấy tất cả keys với pattern
    */
   async getKeys(pattern: string): Promise<string[]> {
+    if (!this.redis) {
+      this.logger.warn('Redis client not available, returning empty array');
+      return [];
+    }
+
     try {
       return await this.redis.keys(pattern);
     } catch (error) {
@@ -153,6 +193,11 @@ export class CacheService {
    * Xóa tất cả cache
    */
   async flushAll(): Promise<void> {
+    if (!this.redis) {
+      this.logger.warn('Redis client not available, skipping flush all');
+      return;
+    }
+
     try {
       await this.redis.flushall();
       this.logger.debug('All cache flushed');
@@ -170,6 +215,15 @@ export class CacheService {
     memoryUsage: string;
     connectedClients: number;
   }> {
+    if (!this.redis) {
+      this.logger.warn('Redis client not available, returning default stats');
+      return {
+        totalKeys: 0,
+        memoryUsage: 'N/A',
+        connectedClients: 0,
+      };
+    }
+
     try {
       const info = await this.redis.info();
       const keys = await this.redis.dbsize();
@@ -208,6 +262,10 @@ export class CacheService {
    * Kiểm tra và xóa keys cũ nếu vượt quá giới hạn
    */
   private async checkMaxKeys(): Promise<void> {
+    if (!this.redis) {
+      return;
+    }
+
     try {
       const currentKeys = await this.redis.dbsize();
       if (currentKeys >= this.maxKeys) {

@@ -4,7 +4,7 @@ import { MailModule } from './mail/mail.module';
 import { SharedCacheModule } from './cache/cache.module';
 
 @Module({
-  imports: [CloudinaryModule, MailModule, SharedCacheModule],
+  imports: [CloudinaryModule, MailModule, SharedCacheModule.forRoot()],
   exports: [CloudinaryModule, MailModule, SharedCacheModule],
 })
 export class SharedModule {} 
