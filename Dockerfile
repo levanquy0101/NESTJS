@@ -16,6 +16,9 @@ COPY . .
 # Build NestJS project
 RUN npm run build
 
+# Copy file .env vào container
+# COPY .env .env
+
 # Port mà app sẽ chạy (NestJS mặc định là 8080)
 EXPOSE 8080
 
